@@ -12,15 +12,15 @@ PROG = test_redis_pool
 $(PROG): $(OBJ) $(PROG).o
 	gcc -o $@ $^ $(CFLAGS) $(LIBS)
 
-redis_pool.a: $(OBJ)
-	ar -rcs redis_pool.a redis_pool.o
+libredis_pool.a: $(OBJ)
+	ar -rcs libredis_pool.a redis_pool.o
 
-redis_pool.so: $(OBJ)
-	gcc -o redis_pool.so redis_pool.o $(CFLAGS) $(LIBS) -shared
+libredis_pool.so: $(OBJ)
+	gcc -o libredis_pool.so redis_pool.o $(CFLAGS) $(LIBS) -shared
 
-install: redis_pool.so redis_pool.a
-	cp redis_pool.a /usr/local/lib
-	cp redis_pool.so /usr/local/lib
+install: libredis_pool.so libredis_pool.a
+	cp libredis_pool.a /usr/local/lib
+	cp libredis_pool.so /usr/local/lib
 	cp *.h /usr/local/include
 
 clean:;         $(RM) $(PROG) *.o *.a *.so
