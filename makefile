@@ -21,6 +21,7 @@ redis_pool.so: $(OBJ)
 install: redis_pool.so redis_pool.a
 	cp redis_pool.a /usr/local/lib
 	cp redis_pool.so /usr/local/lib
+	cp *.h /usr/local/include
 
 clean:;         $(RM) $(PROG) *.o *.a *.so
 
