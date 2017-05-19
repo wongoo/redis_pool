@@ -1,0 +1,5 @@
+*.so
+*.a
+*.o
+test_redis_pool
+
