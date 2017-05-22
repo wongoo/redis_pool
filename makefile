@@ -1,6 +1,6 @@
 CC=gcc
 INCLUDES=-I/usr/local/include
-CFLAGS= -g -Wall ${INCLUDES}
+CFLAGS= -g -Wall -fPIC ${INCLUDES}
 LIBS = -L/usr/local/lib -lhiredis -levent
 DEPS = redis_conf.h redis_pool.h
 OBJ = redis_pool.o
