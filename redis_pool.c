@@ -38,6 +38,8 @@ redis_pool_new(struct event_base *base, struct redis_conf *conf, int count) {
     p->count = count;
     p->ac = calloc(count, sizeof(redisAsyncContext*));
     
+    p->connecting = 0;
+    
     p->cfg = conf;
     p->base = base;
     
@@ -72,6 +74,7 @@ free_redis_pool(struct redis_pool *pool) {
     for(i = 0; i < pool->count; ++i) {
         redis_pool_free_context((redisAsyncContext*)pool->ac[i]);
     }
+    free(pool->ac);
     free(pool);
     pool = NULL;
 }
@@ -98,11 +101,16 @@ redis_pool_on_connect(const redisAsyncContext *ac, int status) {
     req->retry_times = 0;
     
     /* add to redis_pool */
+    int inserted = 0;
     for(i = 0; i < p->count; ++i) {
         if(p->ac[i] == NULL) {
             p->ac[i] = ac;
-            return;
+            inserted = 1;
+            break;
         }
+    }
+    if(inserted == 0){
+        redis_pool_free_context((redisAsyncContext *)ac);
     }
 }
 
@@ -170,12 +178,21 @@ redisAsyncContext *
 redis_pool_connect(struct redis_pool_conn_req *req) {
     struct redis_pool *p = req->p;
     
+    if(req->retry_times == 0){
+        /* increase connecting count */
+        p->connecting++;
+    }
+    
     /* increase retry times */
     req->retry_times++;
     
     if(p->cfg->max_conn_retry_times > 0 && req->retry_times > p->cfg->max_conn_retry_times)
     {
         syslog(LOG_ERR, "can't connect redis, alreay reach the max connection try times %d\n", p->cfg->max_conn_retry_times);
+        
+        /* decrease connecting count */
+        p->connecting--;
+        
         return NULL;
     }
     
@@ -237,8 +254,10 @@ redis_pool_get_context(struct redis_pool *p) {
         if(p->ac[p->cur] != NULL) {
             return p->ac[p->cur];
         }else{
-            struct redis_pool_conn_req *req = redis_pool_conn_req_new(p);
-            redis_pool_connect(req);
+            if(p->connecting < p->count){
+                struct redis_pool_conn_req *req = redis_pool_conn_req_new(p);
+                redis_pool_connect(req);
+            }
         }
     } while(p->cur != orig);
     

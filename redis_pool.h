@@ -9,6 +9,7 @@ struct redis_pool {
     struct redis_conf *cfg;
     
     const redisAsyncContext **ac;
+    int connecting;
     int count;
     int cur;
     
