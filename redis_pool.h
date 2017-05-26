@@ -11,7 +11,8 @@ struct redis_pool {
     const redisAsyncContext **ac;
     int connecting;
     int count;
-    int cur;
+    int current;
+    short shutdown;
     
     struct event_base *base;
     

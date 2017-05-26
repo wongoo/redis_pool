@@ -39,6 +39,9 @@ redis_pool_test(int fd, short event, void *ptr) {
     
     redisAsyncCommand(ac, redis_command_cb, NULL, "get key2");
     redisAsyncCommand(ac, redis_command_cb, NULL, "get key2");
+    
+    
+    free_redis_pool(pool);
 }
 
 /* ----------------------------------------------
@@ -48,9 +51,9 @@ int main(int argc, char *argv[])
     struct event_base *base = event_base_new();
     
     struct redis_conf *conf= malloc(sizeof(struct redis_conf));
-    //conf->redis_host = "127.0.0.1";
-    conf->redis_host = "/tmp/redis_6380.sock";
-    conf->redis_port = 6380;
+    conf->redis_host = "127.0.0.1";
+    //conf->redis_host = "/tmp/redis_6380.sock";
+    conf->redis_port = 6379;
     conf->redis_auth = NULL;
     conf->database = -1;
     conf->max_conn_retry_times = 10;
@@ -68,10 +71,8 @@ int main(int argc, char *argv[])
     evtimer_add(&ev, &tv);
     
     event_base_dispatch(base);
-    
-    free_redis_pool(pool);
-    free(conf);
     event_base_free(base);
+    free(conf);
     
     return 0;
     

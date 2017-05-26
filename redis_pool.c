@@ -36,9 +36,13 @@ redis_pool_new(struct event_base *base, struct redis_conf *conf, int count) {
     struct redis_pool *p = calloc(1, sizeof(struct redis_pool));
     
     p->count = count;
+    
     p->ac = calloc(count, sizeof(redisAsyncContext*));
+    int i;
+    for(i=0;i<count;i++) p->ac[i] = NULL;
     
     p->connecting = 0;
+    p->shutdown = 0;
     
     p->cfg = conf;
     p->base = base;
@@ -59,7 +63,6 @@ redis_pool_free_context(redisAsyncContext *ac) {
         }
         
         redisAsyncDisconnect(ac);
-        redisAsyncFree(ac);
     }
 }
 
@@ -68,7 +71,7 @@ redis_pool_free_context(redisAsyncContext *ac) {
  ---------------------------------------------- */
 void
 free_redis_pool(struct redis_pool *pool) {
-    
+    pool->shutdown = 1;
     int i;
     /* create connections */
     for(i = 0; i < pool->count; ++i) {
@@ -154,7 +157,7 @@ redis_pool_on_disconnect(const redisAsyncContext *ac, int status) {
         fprintf(stderr, "Error: %s\n", ac->errstr);
     }
     
-    if(p == NULL) { /* no need to clean anything here. */
+    if(p == NULL || p->shutdown) { /* no need to clean anything here. */
         return;
     }
     
@@ -246,20 +249,20 @@ redis_pool_conn_req_new(struct redis_pool *p)
  ---------------------------------------------- */
 const redisAsyncContext *
 redis_pool_get_context(struct redis_pool *p) {
-    int orig = p->cur;
+    int orig = p->current;
     
     do {
-        p->cur++;
-        p->cur %= p->count;
-        if(p->ac[p->cur] != NULL) {
-            return p->ac[p->cur];
+        p->current++;
+        p->current %= p->count;
+        if(p->ac[p->current] != NULL) {
+            return p->ac[p->current];
         }else{
             if(p->connecting < p->count){
                 struct redis_pool_conn_req *req = redis_pool_conn_req_new(p);
                 redis_pool_connect(req);
             }
         }
-    } while(p->cur != orig);
+    } while(p->current != orig);
     
     return NULL;
     
